@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minecraft Creators</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; background: #fff; color: #111;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; }
+  main { max-width: 1200px; margin: 0 auto;
+    padding: clamp(24px, 5vw, 48px) max(clamp(16px, 4vw, 24px), env(safe-area-inset-right)) calc(80px + env(safe-area-inset-bottom)) max(clamp(16px, 4vw, 24px), env(safe-area-inset-left)); }
+
+  /* ---------- top: view switch + controls ---------- */
+  .top { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 40px; }
+  .controls { display: flex; justify-content: center; }
+  .controls[hidden] { display: none; }
+  .seg { display: flex; align-items: center; gap: 2px; padding: 4px; background: #efefef; border-radius: 999px; max-width: 100%; }
+  .segbtn {
+    display: flex; align-items: center; gap: 8px;
+    border: 0; border-radius: 999px; background: transparent; color: #767676;
+    font-size: 16px; font-weight: 600; padding: 12px 24px; cursor: pointer; white-space: nowrap;
+    transition: background-color .3s ease, color .3s ease, box-shadow .3s ease, transform .25s cubic-bezier(.22, 1, .36, 1);
+  }
+  @media (hover: hover) { .segbtn:hover { color: #111; } }
+  .segbtn:active { transform: scale(.97); }
+  .segbtn:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+  .segbtn.on { background: #fff; color: #111; box-shadow: 0 0 0 1px rgba(0,0,0,.05), 0 2px 6px rgba(0,0,0,.08); }
+  .chev { width: 10px; height: 6px; transition: transform .25s ease; }
+  .segbtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+
+  .catwrap { position: relative; }
+  .menu {
+    position: absolute; top: calc(100% + 12px); right: 0; z-index: 5; min-width: 100%; width: max-content; max-width: calc(100vw - 32px); max-height: min(60vh, 420px); overflow-y: auto; overscroll-behavior: contain;
+    background: #fff; border-radius: 20px; padding: 8px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.16);
+    opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.97); transform-origin: top right;
+    transition: opacity .2s ease, transform .2s cubic-bezier(.2,.7,.2,1), visibility 0s linear .2s;
+  }
+  .menu.open { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+  .item {
+    display: block; width: 100%; text-align: left; border: 0; background: transparent;
+    font-size: 16px; font-weight: 600; color: #111; padding: 11px 16px; border-radius: 12px; cursor: pointer;
+    transition: background-color .15s ease;
+  }
+  .item:focus-visible { background: #efefef; outline: none; }
+  @media (hover: hover) { .item:hover { background: #efefef; } }
+  .item.sel { background: #efefef; }
+
+  /* ---------- grids ---------- */
+  .grid { --rg: clamp(36px, 5vw, 56px);
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--rg) clamp(12px, 2vw, 24px); }
+  .grid[hidden] { display: none; }
+  .card { display: flex; flex-direction: column; align-items: center; text-align: center;
+    text-decoration: none; color: inherit; min-width: 0; }
+  .card[hidden] { display: none; }
+  .card:focus-visible { outline: 2px solid #111; outline-offset: 8px; border-radius: 12px; }
+  .pfp {
+    width: min(140px, 80%); height: auto; aspect-ratio: 1 / 1; border-radius: 50%; display: block; object-fit: cover;
+    background: #eee; border: 1px solid #e2e2e2; box-shadow: 0 8px 18px rgba(0,0,0,.18);
+    transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s ease, opacity .5s ease;
+  }
+  .pfp.wait { animation: pulse 1.4s ease-in-out infinite; }
+  .pfp.fade { opacity: 0; }
+  @media (hover: hover) { .card:hover .pfp { transform: translateY(-4px) scale(1.03); box-shadow: 0 14px 26px rgba(0,0,0,.2); } }
+  .name { margin-top: clamp(14px, 2.4vw, 24px); font-weight: 700; font-size: clamp(15px, 1.6vw, 17px); max-width: 100%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .subs { margin-top: 10px; font-size: 12px; letter-spacing: .06em; color: #666; font-variant-numeric: tabular-nums; }
+
+  @keyframes pulse { 50% { background-color: #f6f6f6; } }
+
+  /* ---------- designers ---------- */
+  #designerIntro {
+  margin: 0 0 60px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #767676;
+  }
+  
+  .bio a {
+    color: #798dff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color .2s ease, text-shadow .2s ease;
+  }
+
+  .bio a:hover {
+    color: #677eff;
+    text-shadow: 0 0 10px rgba(139, 157, 255, .25);
+  }
+
+  .grid.d { row-gap: 0; }
+  button.card { background: none; border: 0; padding: 0 0 var(--rg); font: inherit; cursor: pointer; }
+  .pfp.ph { position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;
+    color: #fff; font-weight: 700; font-size: clamp(34px, 6vw, 52px); border-color: transparent; }
+  .avimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .4s ease; }
+  .avimg.ok { opacity: 1; }
+  .dcard.sel .pfp { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #111, 0 14px 26px rgba(0,0,0,.2); }
+
+  .panel {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    grid-template-rows .55s cubic-bezier(.22, 1, .36, 1),
+    opacity .4s ease,
+    transform .55s cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .panel.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .pin { overflow: hidden; min-height: 0; }
+  .pbox { background: #f5f5f5; border-radius: 28px; padding: clamp(20px, 3vw, 28px); margin-bottom: var(--rg);
+    display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+  .bio { margin: 0; max-width: 56ch; font-size: 16px; line-height: 1.5; color: #333; }
+  .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: #fff; color: #111;
+    font-size: 15px; font-weight: 600; text-decoration: none; padding: 10px 18px; cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.06);
+    transition: transform .15s ease, box-shadow .2s ease; }
+  .chip small { font-size: 14px; font-weight: 500; color: #767676; }
+  @media (hover: hover) { .chip:hover { box-shadow: 0 0 0 1px rgba(0,0,0,.14), 0 4px 10px rgba(0,0,0,.1); } }
+  .chip:active { transform: scale(.97); }
+  .chip:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
+
+  /* tablets: 3 per row, phones: 2 per row, desktop: 4 per row */
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .segbtn { padding: 11px 18px; font-size: 15px; }
+    .subs { font-size: 11px; }
+  }
+  @media (max-width: 340px) { .segbtn { padding: 10px 14px; font-size: 14px; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0s !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div class="seg" role="tablist">
+      <button class="segbtn on" id="tabC" type="button" role="tab" aria-selected="true">Creators</button>
+      <button class="segbtn" id="tabD" type="button" role="tab" aria-selected="false">Designers</button>
+    </div>
+    <div class="controls" id="creatorControls">
+      <div class="seg">
+        <button class="segbtn" id="popular" type="button" aria-pressed="false">Popular</button>
+        <div class="catwrap">
+          <button class="segbtn" id="catbtn" type="button" aria-haspopup="menu" aria-expanded="false">
+            <span id="catlabel">Category</span>
+            <svg class="chev" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="menu" id="menu" role="menu"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <p id="designerIntro" hidden>
+  Top-tier designers behind the visuals of some of the biggest creators.
+  </p>
+  <div class="grid d" id="dgrid" hidden></div>
+</main>
+
+<script>
+/* ============ SETTINGS ============ */
+// Paste your YouTube Data API v3 key here (keep the quotes).
+const API_KEY = "PASTE_YOUR_YOUTUBE_API_KEY_HERE";
+const REFRESH_MINUTES = 10;   // how often subscriber counts / profile pictures are re-checked
+
+/* Handle + categories. Edit freely: the dropdown builds itself from these.
+   "✓" = category confirmed by research. No mark = best guess, worth double-checking. */
+const CREATORS = [
+  ["FlameFragsMC", ["SMP & Story", "PvP & Minigames"]],   // ✓ Unstable Universe / Lifesteal SMP
+  ["ParrotX2", ["SMP & Story"]],                          // ✓ Unstable Universe, created Lifesteal's core idea
+  ["wemmbumc", ["SMP & Story", "PvP & Minigames"]],       // ✓ Unstable SMP, started with Bedwars
+  ["ForgeLabs", ["Mods"]],
+  ["frosty", ["Hardcore"]],
+  ["xNestorio", ["Hardcore", "Challenges", "Mods"]],      // ✓ Ultra Hardcore + "Minecraft, but" + mods
+  ["Firelight", ["Hardcore"]],
+  ["Evbo", ["Hardcore", "PvP & Minigames"]],
+  ["SB737", ["SMP & Story"]],                             // ✓ Lifesteal SMP member
+  ["Wisp", ["Challenges"]],                               // ✓ "Minecraft, but" challenges
+  ["NotVixios", ["Horror", "Challenges"]],                   // horror per Sebo
+  ["Vivilly", ["Horror", "Challenges"]],                      // horror per Sebo
+  ["al1craft", ["Hardcore"]],
+  ["RoyalPear", ["Hardcore"]],
+  ["Kolanii", ["Hardcore", "Challenges"]],                // ✓ Hardcore + 100 days challenges
+  ["Renderingframes", ["Hardcore"]],
+  ["SocksApollo", ["Hardcore"]],
+  ["FR3shlol", ["Challenges"]],
+  ["TheMoreOfNeo", ["Challenges"]],
+  ["MindOfNeo", ["Challenges"]],
+  ["NeosMindMc", ["Challenges"]],
+  ["CloolessGamingg", ["Hardcore"]],
+  ["Jamsteo", ["Hardcore"]],
+  ["FitCereal", ["Hardcore"]],
+  ["SpeedSilver", ["Speedrun & Manhunt"]],
+  ["DumbIsDumb", ["Challenges"]],
+  ["dol9hin", ["Challenges"]],
+  ["Branzy", ["SMP & Story"]],                            // ✓ former Lifesteal SMP member
+  ["sea4", ["Hardcore"]],
+  ["JoofyLooby", ["PvP & Minigames"]],
+  ["ThatChiefGuy", ["Hardcore"]],
+  ["jojosolos", ["Hardcore"]],
+  ["Jackswano", ["Challenges"]],
+  ["FarzyMC", ["SMP & Story"]],
+  ["Beppojoe", ["Hardcore"]],
+  ["MrBeastGaming", ["Challenges"]],
+  ["Spokeishere", ["SMP & Story"]],                       // ✓ Lifesteal SMP + Unstable Universe
+  ["dream", ["SMP & Story", "Speedrun & Manhunt"]],       // ✓ Manhunt, speedruns, Dream SMP
+  ["BoofAndBung", ["PvP & Minigames"]],
+  ["aCookieGod", ["Hardcore"]],
+  ["wyll_", ["Hardcore"]],
+  ["InfamousJJ", ["Hardcore"]],
+  ["Slushly", ["Challenges"]],
+  ["TheobaldTheBird", ["Mods"]],
+  ["LuigiToan", ["Hardcore"]],
+  ["EpaxialYT", ["Hardcore"]],
+  ["AiroKunn", ["Hardcore"]],
+  ["OnlyASquid", ["Hardcore"]],
+  ["KnappYT", ["Challenges"]],
+  ["cyproh", ["PvP & Minigames"]],
+  ["PierceTRV", ["Hardcore"]],
+  ["OfficialCheckpoint", ["SMP & Story"]],
+  ["MisterRoyalty", ["Hardcore"]],
+  ["CheapPickle", ["Challenges"]],
+  ["Wallibear", ["Hardcore"]],
+  ["Karl", ["SMP & Story"]],
+  ["yaboysneak", ["Hardcore"]],
+  ["ApolloTVs", ["Hardcore"]],
+];
+
+const DISPLAY_NAMES = {
+  FlameFragsMC: "FlameFrags",
+  ParrotX2: "Parrot",
+  wemmbumc: "Wemmbu",
+  Spokeishere: "Spoke",
+  MrBeastGaming: "MrBeast Gaming",
+  dream: "Dream",
+};
+
+/* ============ DESIGNERS ============ */
+
+const DESIGNERS = [
+  { name: "Kbashed", role: "Studio",
+    pfp: "https://pbs.twimg.com/profile_images/2062415537616060416/R_Y5Djsh_400x400.jpg",
+    bio: 'Studio behind thumbnails for <a href="https://www.youtube.com/@MrBeastGaming" target="_blank" rel="noopener noreferrer">MrBeast Gaming</a>, <a href="https://www.youtube.com/@Dream" target="_blank" rel="noopener noreferrer">Dream</a>, <a href="https://www.youtube.com/@ForgeLabs" target="_blank" rel="noopener noreferrer">ForgeLabs</a>, <a href="https://www.youtube.com/@KarlJacobs" target="_blank" rel="noopener noreferrer">Karl</a> and <a href="https://www.youtube.com/@Parrot" target="_blank" rel="noopener noreferrer">Parrot</a>.',
+    links: [["Website", "https://www.kbashed.com"], ["Discord", "@kbashed"]] },
+
+  { name: "Seltop", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1505156761963147267/3gJ9le1o_400x400.jpg",
+    bio: "One of the biggest Minecraft graphic designers on the planet. Runs MDH and leads development on NPC Studio.",
+    links: [["Website", "https://www.seltop.work"], ["Discord", "@seltop"]] },
+
+  { name: "Zynfx", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1904586023394557952/qqAMiykz_400x400.jpg",
+    bio: "Freelance thumbnail and graphic designer specializing in Minecraft thumbnails, with a portfolio of both detailed and minimalist designs.",
+    links: [["X", "https://x.com/zynfx_designs"], ["Discord", "@iampico"]] },
+
+  { name: "Maksat", role: "Freelancer",
+    pfp: "https://scontent-vie1-1.cdninstagram.com/v/t51.82787-19/658856321_18061406651712035_7710041869356369104_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_cat=102&ccb=7-5&_nc_sid=f7ccc5&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy4zMjAuQzMifQ%3D%3D&_nc_ohc=ON9NA6dbAEsQ7kNvwGsbjnD&_nc_oc=AdqNZwf_5PSbvGlzyxLeaW6LRyS_XTJ5OQFfDS_8X8f9rajXUGipZVHiZbinDRHj2ZA&_nc_zt=24&_nc_ht=scontent-vie1-1.cdninstagram.com&_nc_gid=G-Me8OAtJR8-zFqfVkc-gw&_nc_ss=7b2a8&oh=00_AQRtYTpcOPhWvWjoHknDbkrnuvoosn_GbDfbdzqJHfgNlw&oe=6AEC0E15",
+    bio: "Minecraft thumbnail artist from Kyrgyzstan with experience creating horror and 100 Days-style thumbnails for 30+ channels.",
+    links: [["Instagram", "https://www.instagram.com/maksat_ishenbiev/"], ["Discord", "maxtaalqwe"]] },
+
+  { name: "Ninchi", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1656572404234170369/ce70_1eT_400x400.jpg",
+    bio: 'Thumbnail designer and video editor whose Minecraft work includes <a href="https://www.youtube.com/@Bionic" target="_blank" rel="noopener noreferrer">Bionic</a>, <a href="https://www.youtube.com/@al1" target="_blank" rel="noopener noreferrer">al1</a>, <a href="https://www.youtube.com/@CheapPickle" target="_blank" rel="noopener noreferrer">CheapPickle</a> and <a href="https://www.youtube.com/@Swayle" target="_blank" rel="noopener noreferrer">Swayle</a>. Has delivered 220+ projects and generated 130M+ views.',
+    links: [["X", "https://x.com/itsninchi"], ["Discord", "@ninchi"]] },
+
+  { name: "TPick", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2050682181480001537/ijygrQcH_400x400.png",
+    bio: 'Minecraft thumbnail designer with 3 years of experience, 300+ thumbnails and work for 120+ creators, including <a href="https://www.youtube.com/@LuigiToan" target="_blank" rel="noopener noreferrer">LuigiToan</a>, <a href="https://www.youtube.com/@Epaxial" target="_blank" rel="noopener noreferrer">EpaxialYT</a> and <a href="https://www.youtube.com/@Slushly" target="_blank" rel="noopener noreferrer">Slushly</a>.',
+    links: [["Website", "https://tpick.net/", "X", "https://x.com/tpickfx"], ["Discord", "@tpickfx"]] },
+
+  { name: "Mango", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2076056676076228608/cqq3PdFN_400x400.jpg",
+    bio: 'Minecraft thumbnail artist with 6+ years of experience, creating eye-catching visuals for creators including <a href="https://www.youtube.com/@DaquavisMC" target="_blank" rel="noopener noreferrer">Daquavis</a>, <a href="https://www.youtube.com/@Bionic" target="_blank" rel="noopener noreferrer">Bionic</a>, <a href="https://www.youtube.com/@Wisp" target="_blank" rel="noopener noreferrer">Wisp</a> and <a href="https://www.youtube.com/@SB737" target="_blank" rel="noopener noreferrer">SB737</a>.',
+    links: [["Website", "https://mangofx.art/", "X", "https://x.com/realmangofx"], ["Discord", "@mangofx"]] },
+
+  { name: "Rio", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2060694818733350915/HRYmiNG3_400x400.png",
+    bio: 'Minecraft thumbnail designer with incredible work for <a href="https://www.youtube.com/@ApolloTVs" target="_blank" rel="noopener noreferrer">ApolloTV</a> and other huge creators.',
+    links: [["X", "https://x.com/riovisuals_"], ["Discord", "@_r1o."]] },
+
+  { name: "Paryti", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2078001433949999104/awwNaQBA_400x400.jpg",
+    bio: 'Minecraft thumbnail designer whose work includes thumbnails for creators such as <a href="https://www.youtube.com/@Parrot" target="_blank" rel="noopener noreferrer">ParrotXP</a>, <a href="https://www.youtube.com/@GalaxyIsDum" target="_blank" rel="noopener noreferrer">GalaxyIsDum</a> and <a href="https://www.youtube.com/@yungwillx" target="_blank" rel="noopener noreferrer">yungwillx</a>. Paryti advertises 60M+ views generated through commissioned thumbnail work.',
+    links: [["X", "https://x.com/parytii"], ["Discord", "@paryti"]] },
+
+  { name: "wkso", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2044070166351503360/j1lr9vhe_400x400.jpg",
+    bio: 'Minecraft thumbnail designer with a portfolio spanning high-stakes survival challenges, Lifesteal stories and hardcore adventures. Verified projects include work for <a href="https://www.youtube.com/@CheapPickle" target="_blank" rel="noopener noreferrer">CheapPickle</a>, <a href="https://www.youtube.com/@Wisp" target="_blank" rel="noopener noreferrer">Wisp</a> and <a href="https://www.youtube.com/@Avoma" target="_blank" rel="noopener noreferrer">Avoma</a>.',
+    links: [["X", "https://x.com/wksofx"], ["Discord", "@wkso"]] },
+
+  { name: "rsz", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2061749698369638400/5qIXhfvh_400x400.jpg",
+    bio: 'Minecraft thumbnail designer creating custom 3D scenes and high-impact visuals for creators including <a href="https://www.youtube.com/@Checkpoint" target="_blank" rel="noopener noreferrer">Checkpoint</a>, <a href="https://www.youtube.com/@Squiddo" target="_blank" rel="noopener noreferrer">Squiddo</a>, <a href="https://www.youtube.com/@Sipho" target="_blank" rel="noopener noreferrer">Sipho</a> and <a href="https://www.youtube.com/@Wichtiger" target="_blank" rel="noopener noreferrer">Wichtiger</a>.',
+    links: [["Website", "https://www.rszoriginals.com/", "X", "https://x.com/rszoriginals"], ["Discord", "rszoriginals"]] },
+
+  { name: "Vumchak", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2052751111228899328/aK3u98cU_400x400.jpg",
+    bio: 'Minecraft thumbnail designer focused on bold concepts, readable compositions and detailed in-game scenes. Shares recent work and commission updates through X.',
+    links: [["X", "https://x.com/vumchak"], ["Discord", "vumchak"]] },
+
+  { name: "Pahva", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2093667653038596096/2gWYIn2S_400x400.jpg",
+    bio: 'Finland-based Minecraft thumbnail designer creating polished artwork with a focus on composition, lighting and clear visual storytelling.',
+    links: [["X", "https://x.com/Pahva2"], ["Discord", "@pahva"]] },
+
+  { name: "Sebo", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2116189477831839744/JDFwUUHy_400x400.jpg",
+    bio: 'Minecraft graphic designer creating high-impact YouTube thumbnails, with an emphasis on strong composition, detailed scenes and visual storytelling.',
+    links: [["X", "https://x.com/sebo_kc"], ["Discord", "@sebo_kc"]] },
+
+  { name: "Andre", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1950278183602814976/8QC7_xBl_400x400.jpg",
+    bio: 'Minecraft graphic designer from Brazil. Has made thumbnails for <a href="https://www.youtube.com/@Wisp" target="_blank" rel="noopener noreferrer">Wisp</a>, <a href="https://www.youtube.com/@RageElixir" target="_blank" rel="noopener noreferrer">RageElixir</a> and others.',
+    links: [["Portfolio", "https://andremcdz.com", "X", "https://x.com/andre_mcdz"], ["Discord", "@andre_mcdz"]] },
+
+  { name: "Rusty", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2082309462962900993/CKTWjWP7_400x400.jpg",
+    bio: 'Minecraft thumbnail designer working across 3D Minecraft scenes and vanilla-style artwork. Uses Photoshop, Blender, Blockbench and Mine-imator to build detailed, eye-catching visuals.',
+    links: [["X", "https://x.com/RustysMinecraft"], ["Discord", "@rustysminecraft"]] },
+
+  { name: "Larzy", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1889396879961591808/H4Wmas9V_400x400.jpg",
+    bio: 'Minecraft thumbnail artist with a portfolio featuring work for <a href="https://www.youtube.com/@Sagi1" target="_blank" rel="noopener noreferrer">Sagi1</a>, <a href="https://www.youtube.com/@Midmysticx" target="_blank" rel="noopener noreferrer">Midmysticx</a>, <a href="https://www.youtube.com/@al1" target="_blank" rel="noopener noreferrer">al1</a>, <a href="https://www.youtube.com/@ThatChiefGuy" target="_blank" rel="noopener noreferrer">ThatChiefGuy</a>, <a href="https://www.youtube.com/@GoldActual" target="_blank" rel="noopener noreferrer">GoldActual</a> and <a href="https://www.youtube.com/@Jamsteo" target="_blank" rel="noopener noreferrer">Jamsteo</a>. Specializes in polished Minecraft thumbnails built around clear concepts and strong visual impact.',
+    links: [["Website", "https://www.larzyfx.com/", "X", "https://x.com/larzyfx"], ["Discord", "@larzyfx"]] },
+
+  { name: "Izze", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2070924580722778112/zotyINex_400x400.jpg",
+    bio: 'Minecraft graphic designer sharing thumbnail work and project updates through <a href="https://x.com/Izzlexn" target="_blank" rel="noopener noreferrer">X</a>. Focuses on creating distinctive visuals tailored to gaming videos.',
+    links: [["X", "https://x.com/Izzlexn"], ["Discord", "@izlexn"]] },
+
+  { name: "nickcickle", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2115924175546167296/7vVUSt_q_400x400.jpg",
+    bio: 'Minecraft thumbnail artist with 100+ thumbnails delivered, 30+ clients and more than 1M client views. Portfolio includes work for <a href="https://www.youtube.com/@Freshi" target="_blank" rel="noopener noreferrer">Freshi</a>, <a href="https://www.youtube.com/@Joyxz" target="_blank" rel="noopener noreferrer">Joyxz</a>, <a href="https://www.youtube.com/@Platin" target="_blank" rel="noopener noreferrer">Platin</a> and <a href="https://www.youtube.com/@Evpark" target="_blank" rel="noopener noreferrer">Evpark</a>, with designs ranging from PvP and SkyWars to manhunt and cinematic builds.',
+    links: [["X", "https://x.com/nickcickle"], ["Discord", "nickcickle"]] },
+
+  { name: "Fruitcat", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1992243952209231872/3VWHxDiq_400x400.jpg",
+    bio: 'Minecraft thumbnail artist sharing custom gaming visuals and recent projects through <a href="https://x.com/fruitcatfx" target="_blank" rel="noopener noreferrer">X</a>. Their work centers on attention-grabbing concepts and polished thumbnail presentation.',
+    links: [["X", "https://x.com/fruitcatfx"], ["Discord", "frootcat"]] },
+
+  { name: "Araels", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2073291844650446848/E1qEOkwl_400x400.jpg",
+    bio: 'Minecraft thumbnail designer who shares finished work and concept tests on <a href="https://x.com/araelsx" target="_blank" rel="noopener noreferrer">X</a>. Interested in bold visual ideas and thumbnails designed to make viewers stop scrolling.',
+    links: [["X", "https://x.com/araelsx"], ["Discord", "araelsr"]] },
+
+  { name: "Greeky Boy", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2108609025546010624/DtwrIOzU_400x400.jpg",
+    bio: "Minecraft thumbnail designer with 3 years of experience.",
+    links: [["Portfolio", "https://greekyboy.skiez.xyz", "X", "https://x.com/GreekyBoyy"], ["Discord", "greekyboi01"]] },
+
+  { name: "Flowol", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2065844227481755650/5MDUsSPD_400x400.jpg",
+    bio: 'Freelance Minecraft thumbnail designer sharing artwork and project updates through <a href="https://x.com/floowol" target="_blank" rel="noopener noreferrer">X</a>. Available for inquiries and collaborations through Discord.',
+    links: [["X", "https://x.com/floowol"], ["Discord", "floowol"]] },
+
+  { name: "sparkskye", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2054973778535292928/Tu_C3god_400x400.jpg",
+    bio: 'Minecraft Bedrock animator, editor, designer and artist. Creates thumbnails, profile graphics, banners, 2D and 3D animations, pixel art and other Minecraft-focused creative work. Explore the <a href="https://sparkskye.com/" target="_blank" rel="noopener noreferrer">official portfolio</a>.',
+    links: [["Website", "https://sparkskye.com/", "X", "https://x.com/sparkskyemc"], ["Discord", "sparkskye"]] },
+
+  { name: "Lapz", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1953774642126028800/OGyKkP9T_400x400.jpg",
+    bio: 'Minecraft thumbnail designer showcasing gaming artwork and new projects through <a href="https://x.com/LapzFX" target="_blank" rel="noopener noreferrer">X</a>. Focuses on dynamic compositions and clear, attention-grabbing concepts.',
+    links: [["X", "https://x.com/LapzFX"], ["Discord", "lapzfx"]] },
+
+  { name: "Bluu", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2099392559504392192/km8PaD8z_400x400.jpg",
+    bio: 'Minecraft thumbnail designer sharing commissioned work and updates through <a href="https://x.com/realbluufx" target="_blank" rel="noopener noreferrer">X</a>. Creates custom visuals for gaming videos, with inquiries available through Discord.',
+    links: [["X", "https://x.com/realbluufx"], ["Discord", "realbluu"]] },
+
+  { name: "Begies", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1999395140482334721/ymA5I_Eb_400x400.jpg",
+    bio: 'Graphic designer and Minecraft thumbnail maker offering custom thumbnail commissions. Browse the <a href="https://linktr.ee/begiesfx" target="_blank" rel="noopener noreferrer">Begies links page</a> for portfolio examples and Fiverr services.',
+    links: [["X", "https://x.com/Begiesfx"], ["Discord", "begiesfx"]] },
+
+  { name: "emmz", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/1941930674920783872/dP4OwLOo_400x400.jpg",
+    bio: 'Minecraft thumbnail designer with verified client work for <a href="https://www.youtube.com/@Wisp" target="_blank" rel="noopener noreferrer">Wisp</a>, <a href="https://www.youtube.com/@qBedwars" target="_blank" rel="noopener noreferrer">qBedwars</a>, <a href="https://www.youtube.com/@FitCereal" target="_blank" rel="noopener noreferrer">FitCereal</a>, <a href="https://www.youtube.com/@Dewier" target="_blank" rel="noopener noreferrer">Dewier</a> and <a href="https://www.youtube.com/@AiroKun" target="_blank" rel="noopener noreferrer">AiroKun</a>. Portfolio concepts include Minecraft survival, time-travel and challenge videos.',
+    links: [["X", "https://x.com/emmz_fx"], ["Discord", "emmzfx"]] },
+
+  { name: "DanMC", role: "Freelancer",
+    pfp: "https://pbs.twimg.com/profile_images/2069752787605258241/g2FpxQZC_400x400.jpg",
+    bio: 'Minecraft thumbnail designer sharing work through the <a href="https://x.com/danthumbnail" target="_blank" rel="noopener noreferrer">danthumbnail profile on X</a>. Creates gaming-focused visuals and takes project inquiries through Discord.',
+    links: [["X", "https://x.com/danthumbnail"], ["Discord", "dan.thumbnail"]] },
+];
+
+
+/* ============ APP ============ */
+const API = "https://www.googleapis.com/youtube/v3/channels";
+const STORE = "mc_creators_v1";
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const EASE = "cubic-bezier(.2,.7,.2,1)";
+
+const grid = document.getElementById("grid");
+const dgrid = document.getElementById("dgrid");
+const popularBtn = document.getElementById("popular");
+const catBtn = document.getElementById("catbtn");
+const catLabel = document.getElementById("catlabel");
+const menu = document.getElementById("menu");
+const tabC = document.getElementById("tabC");
+const tabD = document.getElementById("tabD");
+const creatorControls = document.getElementById("creatorControls");
+
+let data = {};   // handle -> { id, name, pfp, subs }
+try { data = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { data = {}; }
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(data)); } catch (e) {} };
+
+const state = { popular: false, cat: "all", view: "creators" };
+const order = CREATORS.map(c => c[0]);
+const catsOf = Object.fromEntries(CREATORS);
+
+function fmt(n) {
+  if (n == null || isNaN(n)) return "? Subs";
+  const f = (v, s) => (Math.round(v * 10) / 10).toString().replace(/\.0$/, "") + s + " Subs";
+  if (n >= 1e6) return f(n / 1e6, "M");
+  if (n >= 1e3) return f(n / 1e3, "K");
+  return Math.round(n) + " Subs";
+}
+
+/* ---------- creator cards (built once, updated in place) ---------- */
+const cards = {};
+order.forEach(h => {
+  const el = document.createElement("a");
+  el.className = "card"; el.hidden = true;
+  el.href = "https://www.youtube.com/@" + h;
+  el.target = "_blank"; el.rel = "noopener noreferrer";
+  const img = document.createElement("img");
+  img.className = "pfp wait"; img.alt = ""; img.decoding = "async"; img.referrerPolicy = "no-referrer";
+  img.src = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+  const name = document.createElement("div"); name.className = "name"; name.textContent = DISPLAY_NAMES[h] || h;
+  const subs = document.createElement("div"); subs.className = "subs"; subs.textContent = "? Subs";
+  el.append(img, name, subs);
+  grid.appendChild(el);
+  cards[h] = { el, img, name, subs, shown: null, raf: 0 };
+});
+
+function countTo(c, target) {
+  cancelAnimationFrame(c.raf);
+  if (target == null || isNaN(target)) { c.subs.textContent = "? Subs"; c.shown = null; return; }
+  const from = c.shown == null ? 0 : c.shown;
+  if (reduce || from === target) { c.shown = target; c.subs.textContent = fmt(target); return; }
+  const t0 = performance.now(), dur = 900;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    c.shown = from + (target - from) * e;
+    c.subs.textContent = fmt(c.shown);
+    if (p < 1) c.raf = requestAnimationFrame(step); else { c.shown = target; c.subs.textContent = fmt(target); }
+  };
+  c.raf = requestAnimationFrame(step);
+}
+
+function paint(h) {
+  const c = cards[h], d = data[h];
+  if (!d) return;
+  const nm = DISPLAY_NAMES[h] || d.name;
+  if (nm && c.name.textContent !== nm) c.name.textContent = nm;
+  if (d.pfp && c.img.dataset.src !== d.pfp) {
+    c.img.dataset.src = d.pfp;
+    const pre = new Image();
+    pre.referrerPolicy = "no-referrer";
+    pre.onload = () => {
+      c.img.classList.add("fade");
+      requestAnimationFrame(() => {
+        c.img.src = d.pfp;
+        c.img.classList.remove("wait");
+        requestAnimationFrame(() => c.img.classList.remove("fade"));
+      });
+    };
+    pre.src = d.pfp;
+  }
+  if (c.shown !== d.subs) countTo(c, d.subs);
+}
+
+/* ---------- smooth entrance ---------- */
+function enter(els) {
+  if (reduce) return;
+  els.forEach((el, i) => el.animate(
+    [{ opacity: 0, transform: "translateY(16px) scale(.96)" }, { opacity: 1, transform: "none" }],
+    { duration: 500, delay: Math.min(i, 20) * 30, easing: EASE, fill: "backwards" }));
+}
+
+/* ---------- creator layout with smooth reordering (FLIP) ---------- */
+function layout(animate) {
+  let list = order.filter(h => state.cat === "all" || catsOf[h].includes(state.cat));
+  if (state.popular) list = [...list].sort((a, b) => ((data[b] || {}).subs || 0) - ((data[a] || {}).subs || 0));
+  const keep = new Set(list);
+
+  const first = {};
+  if (animate && !reduce) order.forEach(h => { if (!cards[h].el.hidden) first[h] = cards[h].el.getBoundingClientRect(); });
+
+  order.forEach(h => { cards[h].el.hidden = !keep.has(h); });
+  list.forEach(h => grid.appendChild(cards[h].el));
+
+  if (reduce) return;
+  const fresh = [];
+  list.forEach(h => {
+    const el = cards[h].el, f = first[h];
+    if (f) {
+      const l = el.getBoundingClientRect();
+      const dx = f.left - l.left, dy = f.top - l.top;
+      if (dx || dy) el.animate(
+        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+        { duration: 550, easing: EASE });
+    } else fresh.push(el);
+  });
+  enter(fresh);
+}
+
+/* ---------- creator controls ---------- */
+const cats = [...new Set(CREATORS.flatMap(c => c[1]))].sort();
+[["all", "All"], ...cats.map(c => [c, c])].forEach(([v, label]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "item" + (v === "all" ? " sel" : ""); b.dataset.v = v;
+  b.setAttribute("role", "menuitem"); b.textContent = label;
+  menu.appendChild(b);
+});
+
+function setMenu(open) {
+  menu.classList.toggle("open", open);
+  catBtn.setAttribute("aria-expanded", open);
+}
+
+popularBtn.addEventListener("click", () => {
+  state.popular = !state.popular;
+  popularBtn.classList.toggle("on", state.popular);
+  popularBtn.setAttribute("aria-pressed", state.popular);
+  layout(true);
+});
+
+catBtn.addEventListener("click", e => { e.stopPropagation(); setMenu(!menu.classList.contains("open")); });
+menu.addEventListener("click", e => {
+  const b = e.target.closest(".item"); if (!b) return;
+  state.cat = b.dataset.v;
+  menu.querySelectorAll(".item").forEach(i => i.classList.toggle("sel", i === b));
+  catLabel.textContent = state.cat === "all" ? "Category" : b.textContent;
+  catBtn.classList.toggle("on", state.cat !== "all");
+  setMenu(false);
+  layout(true);
+});
+document.addEventListener("click", () => setMenu(false));
+
+/* ---------- designers: cards + slide-down socials ---------- */
+function tint(s) {
+  let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `hsl(${h} 22% 44%)`;
+}
+
+const dcards = DESIGNERS.map((d, i) => {
+  const el = document.createElement("button");
+  el.type = "button"; el.className = "card dcard"; el.setAttribute("aria-expanded", "false");
+  const av = document.createElement("div");
+  av.className = "pfp ph"; av.style.background = tint(d.name);
+  av.textContent = d.name.trim().charAt(0).toUpperCase();
+  if (d.pfp) {
+    const im = new Image();
+    im.className = "avimg"; im.alt = ""; im.referrerPolicy = "no-referrer";
+    im.onload = () => im.classList.add("ok");
+    im.onerror = () => im.remove();
+    im.src = d.pfp;
+    av.appendChild(im);
+  }
+  const name = document.createElement("div"); name.className = "name"; name.textContent = d.name;
+  const role = document.createElement("div"); role.className = "subs"; role.textContent = d.role || "";
+  el.append(av, name, role);
+  el.addEventListener("click", e => { e.stopPropagation(); toggleDesigner(i); });
+  dgrid.appendChild(el);
+  return { el };
+});
+
+let openIdx = -1, panelEl = null;
+const colCount = () => Math.max(1, getComputedStyle(dgrid).gridTemplateColumns.split(" ").length);
+
+function buildPanel(d) {
+  const p = document.createElement("div"); p.className = "panel"; p.setAttribute("role", "region");
+  p.addEventListener("click", e => e.stopPropagation());
+  const pin = document.createElement("div"); pin.className = "pin";
+  const box = document.createElement("div"); box.className = "pbox";
+  if (d.bio) {
+  const b = document.createElement("p");
+  b.className = "bio";
+  b.innerHTML = d.bio;
+  box.appendChild(b);
+}
+  const links = document.createElement("div"); links.className = "links";
+  (d.links || []).forEach(([label, value]) => {
+    if (/^https?:\/\//.test(value)) {
+      const a = document.createElement("a");
+      a.className = "chip"; a.href = value; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = label;
+      links.appendChild(a);
+    } else {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.title = "Copy";
+      b.innerHTML = ""; b.append(label + " ");
+      const s = document.createElement("small"); s.textContent = value; b.appendChild(s);
+      b.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(value); s.textContent = "Copied"; setTimeout(() => (s.textContent = value), 1400); } catch (e) {}
+      });
+      links.appendChild(b);
+    }
+  });
+  box.appendChild(links);
+  pin.appendChild(box); p.appendChild(pin);
+  return p;
+}
+
+function placePanel(i) {
+  const c = colCount();
+  const end = Math.min(DESIGNERS.length - 1, (Math.floor(i / c) + 1) * c - 1);
+  dcards[end].el.after(panelEl);
+}
+
+function closePanel(animate) {
+  if (!panelEl) return;
+  const p = panelEl, idx = openIdx;
+  panelEl = null; openIdx = -1;
+  dcards[idx].el.setAttribute("aria-expanded", "false");
+  dcards[idx].el.classList.remove("sel");
+  if (animate && !reduce) {
+  p.classList.remove("open");
+  setTimeout(() => p.remove(), 560);
+}
+  else p.remove();
+}
+
+function toggleDesigner(i) {
+  if (openIdx === i) { closePanel(true); return; }
+  closePanel(true);
+  openIdx = i;
+  panelEl = buildPanel(DESIGNERS[i]);
+  dcards[i].el.setAttribute("aria-expanded", "true");
+  dcards[i].el.classList.add("sel");
+  placePanel(i);
+  void panelEl.offsetHeight;          // let the browser register the closed state first
+  panelEl.classList.add("open");
+  if (!reduce) setTimeout(() => panelEl && panelEl.scrollIntoView({ block: "nearest", behavior: "smooth" }), 120);
+}
+
+let rz;
+addEventListener("resize", () => {
+  clearTimeout(rz);
+  rz = setTimeout(() => { if (panelEl) placePanel(openIdx); }, 120);
+});
+
+/* ---------- Creators / Designers switch ---------- */
+function setView(v) {
+  if (state.view === v) return;
+  state.view = v;
+  closePanel(false); setMenu(false);
+  tabC.classList.toggle("on", v === "creators"); tabC.setAttribute("aria-selected", v === "creators");
+  tabD.classList.toggle("on", v === "designers"); tabD.setAttribute("aria-selected", v === "designers");
+  creatorControls.hidden = v !== "creators";
+  grid.hidden = v !== "creators";
+  dgrid.hidden = v !== "designers";
+  document.getElementById("designerIntro").hidden = v !== "designers";
+  enter(v === "creators" ? order.filter(h => !cards[h].el.hidden).map(h => cards[h].el) : dcards.map(c => c.el));
+}
+tabC.addEventListener("click", () => setView("creators"));
+tabD.addEventListener("click", () => setView("designers"));
+
+document.addEventListener("click", () => closePanel(true));
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { setMenu(false); closePanel(true); }
+});
+
+/* ---------- YouTube API ---------- */
+async function call(params) {
+  const r = await fetch(API + "?part=snippet,statistics&key=" + API_KEY + "&" + params);
+  if (!r.ok) throw new Error(r.status + " " + (await r.text()));
+  return r.json();
+}
+function apply(handle, item) {
+  const sn = item.snippet || {}, st = item.statistics || {}, t = sn.thumbnails || {};
+  data[handle] = {
+    id: item.id,
+    name: sn.title || handle,
+    pfp: (t.high || t.medium || t.default || {}).url || "",
+    subs: st.hiddenSubscriberCount ? null : Number(st.subscriberCount),
+  };
+}
+
+async function refresh() {
+  if (!API_KEY || API_KEY.startsWith("PASTE")) return;
+  try {
+    // Look up handles we haven't resolved yet (once, then cached in the browser)
+    const missing = order.filter(h => !data[h] || !data[h].id);
+    for (let i = 0; i < missing.length; i += 10) {
+      await Promise.all(missing.slice(i, i + 10).map(async h => {
+        const j = await call("forHandle=" + encodeURIComponent("@" + h));
+        if (j.items && j.items[0]) { apply(h, j.items[0]); paint(h); }
+      }));
+    }
+    // Cheap batched refresh: 50 channels per request
+    const known = order.filter(h => data[h] && data[h].id);
+    for (let i = 0; i < known.length; i += 50) {
+      const chunk = known.slice(i, i + 50);
+      const byId = Object.fromEntries(chunk.map(h => [data[h].id, h]));
+      const j = await call("id=" + chunk.map(h => data[h].id).join(",") + "&maxResults=50");
+      (j.items || []).forEach(it => { apply(byId[it.id], it); paint(byId[it.id]); });
+    }
+    save();
+    if (state.popular) layout(true);   // re-sort smoothly if counts changed
+  } catch (e) { console.error("YouTube API error:", e); }
+}
+
+/* ---------- start ---------- */
+order.forEach(paint);   // show cached data instantly
+layout(true);           // entrance animation
+refresh();
+setInterval(refresh, REFRESH_MINUTES * 60 * 1000);
+</script>
+</body>
+</html>
